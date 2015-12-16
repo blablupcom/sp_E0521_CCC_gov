@@ -99,8 +99,11 @@ soup = BeautifulSoup(html, 'lxml')
 block = soup.find('div',{'class':'byEditor article'})
 links = block.findAll('a', href=True)
 for link in links:
-    url = 'http://www.cambridgeshire.gov.uk' + link['href']
-    if 'download/downloads/id' in url:
+    if 'http:' not in link['href']:
+        url = 'http://www.cambridgeshire.gov.uk' + link['href']
+    else:
+        url = link['href']
+    if 'ayment' in link.text:
         title = link.encode_contents(formatter='html').replace('&nbsp;',' ').strip()
         title = title.replace('_',' ')
         if '.csv' in title:
