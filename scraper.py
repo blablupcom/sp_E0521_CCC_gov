@@ -84,7 +84,7 @@ def convert_mth_strings ( mth_string ):
 #### VARIABLES 1.0
 
 entity_id = "E0521_CCC_gov"
-url = "http://www.cambridgeshire.gov.uk/info/20043/finance_and_budget/143/payments_to_suppliers_over_500"
+url = "http://opendata.cambridgeshireinsight.org.uk/dataset/cambridgeshire-county-council-expenditure-over-£500"
 errors = 0
 data = []
 
@@ -96,20 +96,17 @@ soup = BeautifulSoup(html, 'lxml')
 
 #### SCRAPE DATA
 
-block = soup.find('div',{'class':'byEditor article'})
-links = block.findAll('a', href=True)
-for link in links:
-    if 'http:' not in link['href']:
-        url = 'http://www.cambridgeshire.gov.uk' + link['href']
-    else:
-        url = link['href']
-    if 'ayment' in link.text:
-        title = link.encode_contents(formatter='html').replace('&nbsp;',' ').strip()
-        title = title.replace('_',' ')
-        if '.csv' in title:
-            csvYr = title.split(' ')[-1][:4]
-            csvMth = title.split(' ')[-2][:3]
-            csvMth = convert_mth_strings(csvMth.upper())
+blocks = soup.find_all('span', 'links')
+for block in blocks:
+    links = block.find_all('a')
+    for link in links:
+        if '.csv' in link['href']:
+            if 'http:' not in link['href']:
+                url = 'http://www.cambridgeshire.gov.uk' + link['href']
+            else:
+                url = link['href']
+            csvYr = url.split('-')[0][-4:]
+            csvMth = url.split('-')[1][:2]
             data.append([csvYr, csvMth, url])
 
 #### STORE DATA 1.0
