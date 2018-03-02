@@ -9,8 +9,7 @@ import urllib2
 from datetime import datetime
 from bs4 import BeautifulSoup
 
-#### FUNCTIONS 1.1
-import requests
+#### FUNCTIONS 1.0
 
 def validateFilename(filename):
     filenameregex = '^[a-zA-Z0-9]+_[a-zA-Z0-9]+_[a-zA-Z0-9]+_[0-9][0-9][0-9][0-9]_[0-9QY][0-9]$'
@@ -51,7 +50,7 @@ def validateURL(url):
         else:
             ext = os.path.splitext(url)[1]
         validURL = r.getcode() == 200
-        validFiletype = ext.lower() in ['.csv', '.xls', '.xlsx', '.pdf']
+        validFiletype = ext.lower() in ['.csv', '.xls', '.xlsx']
         return validURL, validFiletype
     except:
         print ("Error validating URL.")
@@ -84,31 +83,45 @@ def convert_mth_strings ( mth_string ):
 
 #### VARIABLES 1.0
 
-entity_id = "E0521_CCC_gov"
-url = "http://opendata.cambridgeshireinsight.org.uk/dataset/cambridgeshire-county-council-expenditure-over-£500"
+entity_id = "E1221_DCC_gov"
+url = "https://www.dorsetforyou.com/article/400828"
 errors = 0
 data = []
 
 #### READ HTML 1.0
 
-html = requests.get(url)
-soup = BeautifulSoup(html.text, 'lxml')
+html = urllib2.urlopen(url)
+soup = BeautifulSoup(html, 'lxml')
 
 
 #### SCRAPE DATA
 
-blocks = soup.find_all('span', 'links')
-for block in blocks:
-    links = block.find_all('a')
-    for link in links:
-        if '.csv' in link['href']:
-            if 'http:' not in link['href']:
-                url = 'http://www.cambridgeshire.gov.uk' + link['href']
-            else:
-                url = link['href']
-            csvYr = url.split('-')[0][-4:]
-            csvMth = url.split('-')[1][:2]
-            data.append([csvYr, csvMth, url])
+import urlparse
+import urllib
+block = soup.find('div',{'id':'list'})
+pageLinks = block.findAll('a', href=True)
+
+for pageLink in pageLinks:
+    pageUrl = 'https://www.dorsetforyou.com' + pageLink['href']
+    if 'Expenditure' in pageUrl:
+        parsed_link = urlparse.urlsplit(pageUrl.encode('utf8'))
+        parsed_link = parsed_link._replace(path=urllib.quote(parsed_link.path))
+        encoded_link = parsed_link.geturl()
+        html2 = urllib2.urlopen(encoded_link)
+        soup2 = BeautifulSoup(html2, 'lxml')
+        fileLinks = soup2.findAll('a',href=True)
+        for fileLink in fileLinks:
+            url = 'http://www.dorsetforyou.com/' + fileLink['href']
+            if '.csv' in url or '.xlsx' in url:
+                title = fileLink.contents[0]
+                title = title.encode('utf8').strip().replace("\n", " ").replace("\r", " ").replace("\t", " ")
+                csvYr = title.split(' ')[7]
+                csvMth = title.split(' ')[6][:3]
+                if '-' in csvMth:
+                    csvMth = title.split(' ')[7][:3]
+                    csvYr = title.split(' ')[8]
+                csvMth = convert_mth_strings(csvMth.upper())
+                data.append([csvYr, csvMth, url])
 
 #### STORE DATA 1.0
 
@@ -131,3 +144,4 @@ if errors > 0:
 
 
 #### EOF
+
